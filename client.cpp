@@ -3,6 +3,7 @@
 #include <sys/un.h> // Para los sockets UNIX 
 #include <unistd.h>
 #include <thread>
+#include <mutex>
 
 using namespace std;
 
@@ -15,7 +16,7 @@ void sender(int client_fd) {
     while (1) {
         string input_usuario;
 
-        cin >> input_usuario;
+        getline(cin, input_usuario);
 
         if (input_usuario == "") {
             continue;
@@ -32,10 +33,9 @@ void sender(int client_fd) {
         if (input_usuario == "/quit") {
             // 5. Cerramos el socket
             close(client_fd);
-            exit(0);
+            break;
         }
     }
-    exit(0);
 }
 
 void receiver(int client_fd) {
@@ -44,6 +44,7 @@ void receiver(int client_fd) {
     while (1) {
         char buffer[MAX_MSG_SIZE];
         ssize_t bytes_received = recv(client_fd, buffer, sizeof(buffer), 0);
+
         if (bytes_received == -1) {
             cerr << "Error al recibir datos del socket" << endl;
             exit(1);
@@ -51,7 +52,6 @@ void receiver(int client_fd) {
 
         cout << "Respuesta del servidor: " << string(buffer, bytes_received) << endl;
     }
-    exit(0);
 }
 
 // Ejemplo con UNIX sockets

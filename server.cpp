@@ -3,6 +3,7 @@
 #include <sys/un.h> // Para los sockets UNIX 
 #include <unistd.h>
 #include <thread>
+//#include <vector>
 
 using namespace std;
 
@@ -61,7 +62,7 @@ int main(){
         return 1;
     }
 
-    vector<thread> connections;
+    // vector<thread> connections;
 
     // 3. Escuchamos conexiones entrantes
     int listen_result = listen(server_fd, MAX_CLIENTS); // 5 es el número máximo de conexiones en cola
@@ -86,11 +87,12 @@ int main(){
         // TO-DO: IMPLEMENTAR POOL DE THREADS DE 5
 
         // thread connection(connected_thread, client_fd);
-        // connections.push_back(connection);
-
-        // for (int i; i < connections.size(); i++) {
-        // connections[i].join();
+        // connections.emplace_back(connection);
     }
+
+    // for (int i; i < connections.size(); i++) {
+    //    connections[i].join();
+    //}
     
     close(server_fd);
 
