@@ -75,6 +75,7 @@ add_executable(
   server
   server.cpp
   hangman.cpp
+  threadpool.cpp
 )
 target_include_directories(
   server PRIVATE ${CMAKE_SOURCE_DIR}
