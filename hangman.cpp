@@ -4,7 +4,7 @@
 #include <cctype>
 
 Hangman::Hangman() : currentPlayerIndex(0), gameState(GameState::WAITING_FOR_PLAYERS), 
-                     maxIncorrectGuesses(6), incorrectGuesses(0) {
+                    maxIncorrectGuesses(6), incorrectGuesses(0) {
     // Inicializar el generador de números aleatorios con el tiempo actual
     auto seed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
     rng.seed(static_cast<unsigned int>(seed));

@@ -1,68 +1,84 @@
 #include <iostream>
-#include <cstring>
+#include <sys/socket.h> // Para sockets en general
+#include <sys/un.h> // Para los sockets UNIX 
 #include <unistd.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>  // inet_pton
-#include "hangman.h"
+#include <thread>
 
 using namespace std;
 
+int MAX_CLIENTS = 5;
 int MAX_MSG_SIZE = 1024;
-int PORT = 8080;
-string IP_LOCAL = "127.0.0.1";
 
-int main() {
-    // 1. Crear el socket (AF_INET: IPv4, SOCK_STREAM: TCP)
-    int client_fd = socket(AF_INET, SOCK_STREAM, 0);
+void sender(int client_fd) {
+    // 3. Enviamos un mensaje al servidor usando send
+
+    while (1) {
+        string input_usuario;
+
+        cin >> input_usuario;
+
+        if (input_usuario == "") {
+            continue;
+        }
+
+        const char* message = input_usuario.c_str();
+
+        ssize_t bytes_sent = send(client_fd, message, strlen(message), 0);
+        if (bytes_sent == -1) {
+            cerr << "Error al enviar datos al socket" << endl;
+            exit(1);
+        }
+
+        if (input_usuario == "/quit") {
+            // 5. Cerramos el socket
+            close(client_fd);
+            exit(0);
+        }
+    }
+    exit(0);
+}
+
+void receiver(int client_fd) {
+    // 4. Leemos la respuesta del servidor usando recv
+
+    while (1) {
+        char buffer[MAX_MSG_SIZE];
+        ssize_t bytes_received = recv(client_fd, buffer, sizeof(buffer), 0);
+        if (bytes_received == -1) {
+            cerr << "Error al recibir datos del socket" << endl;
+            exit(1);
+        }
+
+        cout << "Respuesta del servidor: " << string(buffer, bytes_received) << endl;
+    }
+    exit(0);
+}
+
+// Ejemplo con UNIX sockets
+int main(){
+    // 1. Creamos el socket
+    int client_fd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (client_fd == -1) {
         cerr << "Error al crear el socket" << endl;
         return 1;
     }
 
-    // 2. Definir la dirección del servidor
-    sockaddr_in server_addr;
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(PORT); // Convertimos el puerto a formato de red
+    // 2. Conectamos al servidor
+    sockaddr_un address;
+    address.sun_family = AF_UNIX;
+    strcpy(address.sun_path, "/tmp/socket-example");
 
-    // IP del servidor: 127.0.0.1 (localhost)
-    if (inet_pton(AF_INET, IP_LOCAL.c_str(), &server_addr.sin_addr) <= 0) {
-        cerr << "Dirección IP inválida o no soportada" << endl;
-        return 1;
-    }
-
-    // 3. Conectar al servidor
-    if (connect(client_fd, (sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+    int connect_result = connect(client_fd, (sockaddr*)&address, sizeof(address));
+    if (connect_result == -1) {
         cerr << "Error al conectar al servidor" << endl;
         return 1;
     }
-    // 3.5 Conectarse al juego ??
-    string name_player;
-    cout << "Ingresa tu nombre de Jugador: ";
-    cin >> name_player;
-    // Aca se agrega al jugador ponele
 
+    thread sender_t(sender, client_fd);
+    thread receiver_t(receiver, client_fd);
 
-    // 4. Enviar mensaje al servidor
-
-    ssize_t bytes_sent = send(client_fd, name_player.c_str(), name_player.size(), 0);
-    if (bytes_sent == -1) {
-        cerr << "Error al enviar datos al socket" << endl;
-        return 1;
-    }
-
-    // 5. Recibir respuesta del servidor
-    char buffer[MAX_MSG_SIZE];
-    ssize_t bytes_received = recv(client_fd, buffer, sizeof(buffer), 0);
-    if (bytes_received == -1) {
-        cerr << "Error al recibir datos del socket" << endl;
-        return 1;
-    }
-
-    cout << "Respuesta del servidor: " << string(buffer, bytes_received) << endl;
-
-    // 6. Cerrar socket
-    close(client_fd);
+    sender_t.join();
+    receiver_t.join();
 
     return 0;
 }

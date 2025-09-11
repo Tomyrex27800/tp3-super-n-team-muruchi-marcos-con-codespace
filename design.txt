@@ -1,0 +1,12 @@
+-- Comunicación --
+* Protocolo de mensajes: JSON
+
+* Tipo de sockets: TCP
+Siendo un juego de turnos y sin límite de tiempo, se prioriza una conexión y la integridad de los paquetes antes que la velocidad.
+
+-- Jugadores --
+* Primer jugador administrador
+El primer jugador en entrar es el administrador de la "sala". Tiene la potestad de comenzar la partida y volver a la pantalla de espera de conexiones.
+
+-- Material adicional --
+* https://www.geeksforgeeks.org/cpp/handling-multiple-clients-on-server-with-multithreading-using-socket-programming-in-c-cpp/
