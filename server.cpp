@@ -1,9 +1,10 @@
+#include "threadpool.h"
+
 #include <iostream>
 #include <sys/socket.h> // Para sockets en general
 #include <sys/un.h> // Para los sockets UNIX 
 #include <unistd.h>
 #include <thread>
-//#include <vector>
 
 using namespace std;
 
@@ -41,6 +42,8 @@ void connected_thread(int client_fd) {
 
 // Ejemplo con UNIX sockets
 int main(){
+    // 0. pool
+    ThreadPool pool;
     
     // 1. Creamos el socket
     int server_fd = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -62,8 +65,6 @@ int main(){
         return 1;
     }
 
-    // vector<thread> connections;
-
     // 3. Escuchamos conexiones entrantes
     int listen_result = listen(server_fd, MAX_CLIENTS); // 5 es el número máximo de conexiones en cola
     if (listen_result < 0) {
@@ -80,20 +81,9 @@ int main(){
             return 1;
         }
 
-        thread single_connection(connected_thread, client_fd);
-
-        single_connection.join();
-
-        // TO-DO: IMPLEMENTAR POOL DE THREADS DE 5
-
-        // thread connection(connected_thread, client_fd);
-        // connections.emplace_back(connection);
+        pool.enqueue([client_fd] {connected_thread(client_fd);});
     }
 
-    // for (int i; i < connections.size(); i++) {
-    //    connections[i].join();
-    //}
-    
     close(server_fd);
 
     return 0;
