@@ -10,6 +10,9 @@ using namespace std;
 int MAX_CLIENTS = 5;
 int MAX_MSG_SIZE = 1024;
 
+bool connected = true;
+mutex connected_mutex;
+
 void sender(int client_fd) {
     // 3. Enviamos un mensaje al servidor usando send
 
@@ -31,6 +34,10 @@ void sender(int client_fd) {
         }
 
         if (input_usuario == "/quit") {
+            unique_lock<mutex> lock(connected_mutex);
+            connected = false;
+            lock.unlock();
+
             // 5. Cerramos el socket
             close(client_fd);
             break;
@@ -44,6 +51,13 @@ void receiver(int client_fd) {
     while (1) {
         char buffer[MAX_MSG_SIZE];
         ssize_t bytes_received = recv(client_fd, buffer, sizeof(buffer), 0);
+
+        // wrapper para el mutex q se desbloquea automaticamente cuando se sale del scope
+        unique_lock<mutex> lock(connected_mutex);
+        if (!connected) {
+            break;
+        }
+        lock.unlock();
 
         if (bytes_received == -1) {
             cerr << "Error al recibir datos del socket" << endl;
