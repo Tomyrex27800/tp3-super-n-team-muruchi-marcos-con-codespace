@@ -55,7 +55,7 @@ int main(){
     // 2. Vinculamos el socket a una dirección (en este caso, como un socket UNIX, usamos un archivo)
     sockaddr_un address;
     address.sun_family = AF_UNIX;
-    strcpy(address.sun_path, "/tmp/socket-example");
+    strcpy(address.sun_path, "/tmp/socket-hangman");
     unlink(address.sun_path);  // Aseguramos que el socket no exista 
 
     // el :: es para salir del namespace std en esta llamada ya que existe un std::bind que no es el que queremos usar
