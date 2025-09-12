@@ -7,7 +7,6 @@
 
 using namespace std;
 
-int MAX_CLIENTS = 5;
 int MAX_MSG_SIZE = 1024;
 
 bool connected = true;
