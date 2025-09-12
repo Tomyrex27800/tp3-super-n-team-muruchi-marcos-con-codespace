@@ -100,6 +100,7 @@ int main(){
         return 1;
     }
 
+    // 2 y medio. threads de comunicación sender y receiver
     thread sender_t(sender, client_fd);
     thread receiver_t(receiver, client_fd);
 
