@@ -1,4 +1,5 @@
 #include "threadpool.h"
+#include "hangman.h"
 
 #include <iostream>
 #include <sys/socket.h> // Para sockets en general
@@ -8,10 +9,10 @@
 
 using namespace std;
 
-int MAX_CLIENTS = 5;
+int MAX_CLIENTS = 0;
 int MAX_MSG_SIZE = 1024;
 
-void connected_thread(int client_fd) {
+void connectedThread(int client_fd) {
     while (1) {
         // 5. Leemos datos del cliente usando recv
         char buffer[MAX_MSG_SIZE];
@@ -38,6 +39,21 @@ void connected_thread(int client_fd) {
             exit(1);
         }
     }
+}
+
+void printGameState(const Hangman& game) {
+    cout << "\n=== Estado del Juego ===" << endl;
+    cout << "Palabra: " << game.getWordDisplay() << endl;
+    cout << "Intentos restantes: " << game.getRemainingGuesses() << endl;
+    cout << "Letras adivinadas: ";
+    for (char c : game.getGuessedLetters()) {
+        cout << c << " ";
+    }
+    cout << endl;
+    if (!game.isGameFinished()) {
+        cout << "Turno de: " << game.getCurrentPlayerName() << endl;
+    }
+    cout << "========================\n" << endl;
 }
 
 // Ejemplo con UNIX sockets
@@ -81,7 +97,19 @@ int main(){
             return 1;
         }
 
-        pool.enqueue([client_fd] {connected_thread(client_fd);});
+        bool connection_success = pool.enqueue([client_fd] {connectedThread(client_fd);});
+        if (!connection_success) {
+            const char* message = "/client_quit";
+
+            ssize_t bytes_sent = send(client_fd, message, strlen(message), 0);
+            if (bytes_sent == -1) {
+                cerr << "Error al enviar datos al socket" << endl;
+                exit(1);
+            }
+
+            close(client_fd);
+            cout << "Se rechazó una conexión porque se alcanzó el límite de 5 conexiones." << endl;
+        }
     }
 
     close(server_fd);

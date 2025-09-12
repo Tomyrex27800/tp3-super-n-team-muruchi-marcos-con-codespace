@@ -16,24 +16,26 @@ public:
     // destructor, para el pool
     ~ThreadPool();
 
-    // encola tareas nuevas
-    void enqueue(std::function<void()> task);
+    // encola conexiones nuevas
+    bool enqueue(std::function<void()> task);
 
 private:
     // vector de workers
     std::vector<std::thread> threads_;
 
-    // cola de tareas
+    // cola de conexiones
     std::queue<std::function<void()>> tasks_;
 
     // mutex para el acceso a datos compartidos
     std::mutex queue_mutex_;
 
-    // cv para avisar de cambios en el estado de la cola de tareas
+    // cv para avisar de cambios en el estado de la cola de conexiones
     std::condition_variable cv_;
 
     // flag para indicar si el pool tiene que parar o no
     bool stop_;
+
+    int current_connections_;
 };
 
 #endif

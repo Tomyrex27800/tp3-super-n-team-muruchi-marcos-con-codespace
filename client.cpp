@@ -21,6 +21,12 @@ void sender(int client_fd) {
 
         getline(cin, input_usuario);
 
+        unique_lock<mutex> lock_a(connected_mutex);
+        if (!connected) {
+            break;
+        }
+        lock_a.unlock();
+
         if (input_usuario == "") {
             continue;
         }
@@ -34,9 +40,9 @@ void sender(int client_fd) {
         }
 
         if (input_usuario == "/quit") {
-            unique_lock<mutex> lock(connected_mutex);
+            unique_lock<mutex> lock_b(connected_mutex);
             connected = false;
-            lock.unlock();
+            lock_b.unlock();
 
             // 5. Cerramos el socket
             close(client_fd);
@@ -55,6 +61,13 @@ void receiver(int client_fd) {
         // wrapper para el mutex q se desbloquea automaticamente cuando se sale del scope
         unique_lock<mutex> lock(connected_mutex);
         if (!connected) {
+            break;
+        }
+        if (string(buffer, bytes_received) == "/client_quit") {
+            connected = false;
+
+            cout << "Conexión con el servidor cerrada." << endl;
+
             break;
         }
         lock.unlock();
@@ -80,7 +93,7 @@ int main(){
     // 2. Conectamos al servidor
     sockaddr_un address;
     address.sun_family = AF_UNIX;
-    strcpy(address.sun_path, "/tmp/socket-example");
+    strcpy(address.sun_path, "/tmp/socket-hangman");
 
     int connect_result = connect(client_fd, (sockaddr*)&address, sizeof(address));
     if (connect_result == -1) {
