@@ -13,7 +13,7 @@ using namespace std;
 // este thread pool fue copiado a mano y a conciencia desde https://www.geeksforgeeks.org/cpp/thread-pool-in-cpp/
 // JURO QUE IJNTENTE ENTENDERLO
 
-ThreadPool::ThreadPool() : stop_(false), current_connections_(0)
+ThreadPool::ThreadPool() : stop_(false)
 {
     // creacion de 5 worker threads
     for (size_t i = 0; i < 5; i++) {
@@ -39,12 +39,9 @@ ThreadPool::ThreadPool() : stop_(false), current_connections_(0)
                     // la funcion "move", segun leí, le indica al compilador que la variable a la que se accede se mueve tal cual
                     task = move(tasks_.front());
                     tasks_.pop();
-                    current_connections_ += 1;
                 }
 
                 task();
-                unique_lock<mutex> lock(queue_mutex_);
-                current_connections_ -= 1;
             }
         });
     }
@@ -67,18 +64,11 @@ ThreadPool::~ThreadPool()
     }
 }
 
-bool ThreadPool::enqueue(function<void()> task) {
+void ThreadPool::enqueue(function<void()> task) {
     {
         unique_lock<mutex> lock(queue_mutex_);
-
-        // si existen 5 conexiones, la conexión se rechaza.
-        if (current_connections_ >= 5) {
-            return false;
-        }
 
         tasks_.emplace(move(task));
     }
     cv_.notify_one();
-
-    return true;
 }

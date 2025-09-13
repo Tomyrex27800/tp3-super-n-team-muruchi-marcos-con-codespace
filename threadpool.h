@@ -17,7 +17,7 @@ public:
     ~ThreadPool();
 
     // encola conexiones nuevas y almacena el file descriptor
-    bool enqueue(std::function<void()> task);
+    void enqueue(std::function<void()> task);
 
 private:
     // vector de workers
@@ -34,9 +34,6 @@ private:
 
     // flag para indicar si el pool tiene que parar o no
     bool stop_;
-
-    // cantidad de conexiones actuales
-    int current_connections_;
 };
 
 #endif
