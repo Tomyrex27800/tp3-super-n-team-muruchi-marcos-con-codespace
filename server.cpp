@@ -64,21 +64,6 @@ void connectedThread(int client_fd) {
     }
 }
 
-void printGameState(const Hangman& game) {
-    cout << "\n=== Estado del Juego ===" << endl;
-    cout << "Palabra: " << game.getWordDisplay() << endl;
-    cout << "Intentos restantes: " << game.getRemainingGuesses() << endl;
-    cout << "Letras adivinadas: ";
-    for (char c : game.getGuessedLetters()) {
-        cout << c << " ";
-    }
-    cout << endl;
-    if (!game.isGameFinished()) {
-        cout << "Turno de: " << game.getCurrentPlayerName() << endl;
-    }
-    cout << "========================\n" << endl;
-}
-
 // Ejemplo con UNIX sockets
 int main(){
     // 0. pool
