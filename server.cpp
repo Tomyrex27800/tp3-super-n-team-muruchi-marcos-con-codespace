@@ -6,11 +6,16 @@
 #include <sys/un.h> // Para los sockets UNIX 
 #include <unistd.h>
 #include <thread>
+#include <algorithm>
+#include <iterator>
 
 using namespace std;
 
 int MAX_CLIENTS = 0;
 int MAX_MSG_SIZE = 1024;
+
+vector<int> connections_fd_;
+mutex connections_fd_mutex_;
 
 void connectedThread(int client_fd) {
     while (1) {
@@ -26,18 +31,36 @@ void connectedThread(int client_fd) {
 
         if (message_received == "/quit") {
             // 7. Cerramos el socket
+            connections_fd_mutex_.lock();
+
+            auto it = find(connections_fd_.begin(), connections_fd_.end(), client_fd);
+            if (it != connections_fd_.end()) {
+                connections_fd_.erase(it);
+            }
+            connections_fd_mutex_.unlock();
+
             close(client_fd);
             break;
         }
 
         cout << "Mensaje recibido del cliente: " << message_received << endl;
+        connections_fd_mutex_.lock();
 
-        // 6. Escribimos datos de vuelta al cliente usando send
-        ssize_t bytes_sent = send(client_fd, buffer, bytes_received, 0);
-        if (bytes_sent < 0) {
-            cerr << "Error al enviar datos al socket" << endl;
-            exit(1);
+        for (int i = 0; i < connections_fd_.size(); i++) {
+            // 6. Escribimos datos de vuelta al cliente usando send
+            int client_fd_i = connections_fd_[i];
+
+            if (client_fd_i != client_fd) {
+                cout << "Redirigiendo a " << client_fd_i << endl;
+
+                ssize_t bytes_sent = send(client_fd_i, buffer, bytes_received, 0);
+                if (bytes_sent < 0) {
+                    cerr << "Error al enviar datos al socket" << endl;
+                    exit(1);
+                }
+            }
         }
+        connections_fd_mutex_.unlock();
     }
 }
 
@@ -109,7 +132,11 @@ int main(){
 
             close(client_fd);
             cout << "Se rechazó una conexión porque se alcanzó el límite de 5 conexiones." << endl;
+            continue;
         }
+        unique_lock<mutex> lock(connections_fd_mutex_);
+        connections_fd_.emplace_back(client_fd);
+        cout << "Se unió " << client_fd << endl;
     }
 
     close(server_fd);

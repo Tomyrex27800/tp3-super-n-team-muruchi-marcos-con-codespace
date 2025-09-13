@@ -16,7 +16,7 @@ public:
     // destructor, para el pool
     ~ThreadPool();
 
-    // encola conexiones nuevas
+    // encola conexiones nuevas y almacena el file descriptor
     bool enqueue(std::function<void()> task);
 
 private:
@@ -35,6 +35,7 @@ private:
     // flag para indicar si el pool tiene que parar o no
     bool stop_;
 
+    // cantidad de conexiones actuales
     int current_connections_;
 };
 
