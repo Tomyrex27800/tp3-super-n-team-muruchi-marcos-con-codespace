@@ -10,7 +10,7 @@
 
 using namespace std;
 
-// este thread pool fue copiado a mano y a conciencia desde https://www.geeksforgeeks.org/cpp/thread-pool-in-cpp/
+// este thread pool fue copiado a mano y a conciencia y después adaptado al proyecto desde https://www.geeksforgeeks.org/cpp/thread-pool-in-cpp/
 // JURO QUE IJNTENTE ENTENDERLO
 
 ThreadPool::ThreadPool() : stop_(false)

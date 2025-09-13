@@ -65,7 +65,7 @@ void receiver(int client_fd) {
         if (string(buffer, bytes_received) == "/client_quit") {
             connected = false;
 
-            cout << "Conexión con el servidor cerrada." << endl;
+            cout << "--- CONEXIÓN CERRADA O RECHAZADA ---\nPresione cualquier tecla para continuar..." << endl;
 
             break;
         }
@@ -76,7 +76,7 @@ void receiver(int client_fd) {
             exit(1);
         }
 
-        cout << "Respuesta del servidor: " << string(buffer, bytes_received) << endl;
+        cout << string(buffer, bytes_received) << endl;
     }
 }
 
