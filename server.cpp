@@ -18,7 +18,7 @@ int MAX_MSG_SIZE = 1024;
 
 // ----------------
 
-// DISTINCIÓN IMPORTANTE!!: LOS JUGADORES SON AQUELLAS CONEXIONES QUE INTRODUJERON UN NOMBRE AL ENTRAR A LA SALA
+// DISTINCIÓN IMPORTANTE: Los jugadores son aquellas conexiones que ingresaron un nombre y son capaces de entrar a la partida.
 
 // fd de la conexión admin
 int admin_connection = 0;
@@ -392,7 +392,7 @@ int main() {
             current_state = game.getGameState();
         }
 
-        // --------- PRE PARTIDA ---------
+        // --------- PRE PARTIDA (ESPERA DE JUGADORES NUEVOS) ---------
         if (current_state == GameState::WAITING_FOR_PLAYERS)
         {
             cout << "\nEsperando nuevos jugadores...\nNota: cada jugador debe ingresar su nombre para jugar.\n" << endl;
