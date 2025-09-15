@@ -73,7 +73,7 @@ void kickConnection(int client_fd) {
     // se cierra la conexion con el cliente
     close(client_fd);
 
-    cout << "Se cerró una conexión de cliente." << endl;
+    cout << "\nSe cerró una conexión de cliente." << endl;
 }
 
 // lógica de un thread de conexión a cliente
@@ -108,11 +108,26 @@ void connectedThread(int client_fd) {
 
         PlayerConnection new_player(player_name, client_fd, false);
         connections_players.emplace_back(new_player);
+        cout << "\nSe unió " << player_name << endl;
+
+        const char* message_c = "\n¡Te damos la bienvenida al servidor!";
+        ssize_t bytes_sent = send(client_fd, message_c, strlen(message_c), 0);
+        if (bytes_sent < 0) {
+            cerr << "Error al enviar datos al socket" << endl;
+            exit(1);
+        }
 
         // si no hay admin de la sala, se establece este jugador como admin
         if (admin_connection == 0) {
             admin_connection = client_fd;
-            cout << "Nuestro administrador es " << player_name << endl;
+            cout << "\nNuestro administrador es " << player_name << endl;
+
+            const char* message_b = "\n----- SOS ADMIN -----\nAdministrás el servidor. Escribí /jugar para comenzar la partida, deben haber 2 o más jugadores. Escribí /lobby al terminar la partida para volver a la espera de jugadores nuevos.";
+            ssize_t bytes_sent = send(client_fd, message_b, strlen(message_b), 0);
+            if (bytes_sent < 0) {
+                cerr << "Error al enviar datos al socket" << endl;
+                exit(1);
+            }
         }
     } else {
         kickConnection(client_fd);
@@ -164,7 +179,7 @@ void connectedThread(int client_fd) {
         if (message_received == "/lobby" && admin_connection == client_fd && game.isGameFinished()) {
             {
                 unique_lock<mutex> lock_hangman(hangman_mutex);
-                game.startGame();
+                game.resetToWaiting();
             }
             cv_action.notify_all();
 
@@ -189,7 +204,7 @@ void connectedThread(int client_fd) {
             const string letra = string(buffer, bytes_received);
             if (letra.length() != 1) {
                 const char* message_b = "\nPara adivinar una letra, introduzca un solo caracter. Escriba el comando /letra para intentar de nuevo.";
-                ssize_t bytes_sent = send(client_fd, message_b, strlen(message), 0);
+                ssize_t bytes_sent = send(client_fd, message_b, strlen(message_b), 0);
                 if (bytes_sent < 0) {
                     cerr << "Error al enviar datos al socket" << endl;
                     exit(1);
@@ -200,7 +215,10 @@ void connectedThread(int client_fd) {
             {
                 unique_lock<mutex> lock_hangman(hangman_mutex);
                 unique_lock<mutex> lock_action(cv_action_mutex);
-                actioned = game.guessLetter(player_name, letra.c_str()[0]);
+
+                char char_letra = letra.c_str()[0];
+
+                actioned = game.guessLetter(player_name, char_letra);
             }
             cv_action.notify_all();
         } 
@@ -230,7 +248,7 @@ void connectedThread(int client_fd) {
             cv_action.notify_all();
         } 
 
-        cout << "\n* Mensaje de " << player_name <<": \n" << message_received << "\n" << endl;
+        cout << "\n* Mensaje de " << player_name <<": \n" << message_received << endl;
     }
 }
 
@@ -316,7 +334,6 @@ void connectionHandler(){
 
         // se añade la conexion a la lista de clientes actuales
         connections_fd.emplace_back(client_fd);
-        cout << "Se unió " << client_fd << endl;
     }
 
     close(server_fd);
@@ -378,7 +395,8 @@ int main() {
         // --------- PRE PARTIDA ---------
         if (current_state == GameState::WAITING_FOR_PLAYERS)
         {
-            cout << "\nEsperando jugadores...\nNota: cada jugador debe ingresar su nombre para jugar.\n" << endl;
+            cout << "\nEsperando nuevos jugadores...\nNota: cada jugador debe ingresar su nombre para jugar.\n" << endl;
+            broadcastMessageToPlayers("Esperando nuevos jugadores...");
 
             {
                 unique_lock<mutex> lock_hangman(hangman_mutex);
@@ -408,7 +426,11 @@ int main() {
         {
             {
                 unique_lock<mutex> lock_hangman(hangman_mutex);
-                broadcastMessageToPlayers(game.getWordDisplay());
+
+                const string estado_partida = "\n------------\nQuedan " + to_string(game.getRemainingGuesses()) + " intentos.\n\nPalabra: " + game.getWordDisplay() + "\n\nTurno de " + game.getCurrentPlayerName() + "\n------------\n";
+
+                broadcastMessageToPlayers(estado_partida);
+                cout << estado_partida << endl;
                 //cv_action.wait(lock_hangman, []{ return game.); });
 
                 string current_turn = game.getCurrentPlayerName();
@@ -418,7 +440,7 @@ int main() {
                     return 1;
                 }
 
-                const char* message = "Tu turno! Escribe /letra o /palabra para adivinar una letra o palabra.";
+                const char* message = "\nTu turno! Escribe /letra o /palabra para adivinar una letra o palabra.";
                 ssize_t bytes_sent = send(current_turn_fd, message, strlen(message), 0);
                 if (bytes_sent < 0) {
                     cerr << "Error al enviar datos al socket" << endl;
@@ -440,9 +462,25 @@ int main() {
         // --------- POST PARTIDA (PARTIDA TERMINADA) ---------
         if (current_state == GameState::FINISHED)
         {
-            cout << "FIN DE LA PARTIDA" << endl;
-
             unique_lock<mutex> lock_hangman(hangman_mutex);
+
+            const string end_msg = "\n----- FIN DE LA PARTIDA -----\n\nLa palabra era " + game.getCurrentWord();
+            broadcastMessageToPlayers(end_msg);
+            cout << end_msg << endl;
+
+            if (game.getWinner().size() > 0) {
+                const string winner_msg = "\n¡El ganador es " + game.getWinner() + " y ganó un punto!";
+                broadcastMessageToPlayers(winner_msg);
+            } else {
+                broadcastMessageToPlayers("\n¡No se adivinó la palabra!");
+            }
+
+            string point_msg = "\n----- PUNTAJE -----";
+            for (int i = 0; i < game.getPlayerCount(); i++) {
+                point_msg = point_msg + "\n" + game.getPlayersWithPoints()[i].first + " tiene " + to_string(game.getPlayersWithPoints()[i].second) + " puntos.";
+            }
+            cout << point_msg << endl;
+            broadcastMessageToPlayers(point_msg);
 
             // condition variable para esperar la accion del admin
             cv_action.wait(lock_hangman, []{
